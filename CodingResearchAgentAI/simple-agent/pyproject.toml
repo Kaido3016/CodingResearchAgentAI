@@ -1,12 +1,17 @@
 [project]
 name = "simple-agent"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Interactive LangGraph agent connected to Firecrawl MCP"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
+    "langchain-core>=0.3.60",
     "langchain-mcp-adapters>=0.1.4",
     "langchain-openai>=0.3.19",
     "langgraph>=0.4.8",
     "python-dotenv>=1.1.0",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
