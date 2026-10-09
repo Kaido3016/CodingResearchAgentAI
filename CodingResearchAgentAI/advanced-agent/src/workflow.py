@@ -38,6 +38,15 @@ def _safe_http_url(value: Any) -> str:
         return ""
     if parsed.username or parsed.password:
         return ""
+    host = parsed.hostname.rstrip(".").casefold()
+    if host in {"localhost", "localhost.localdomain"} or host.endswith((".local", ".internal", ".localhost")):
+        return ""
+    try:
+        import ipaddress
+        if not ipaddress.ip_address(host).is_global:
+            return ""
+    except ValueError:
+        pass
     return url
 
 
