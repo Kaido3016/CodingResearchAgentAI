@@ -1,246 +1,96 @@
 # CodingResearchAgentAI
 
+An experimental developer-tools research project with two separate entry points: an evidence-aware LangGraph workflow and a lightweight MCP-powered Firecrawl assistant.
 
-> Agentic AI research platform built with LangGraph and GPT-4 for automated technical research, tool comparison, structured extraction, and analysis of software technologies.
+**Stack:** Python 3.11+, LangGraph, LangChain, OpenAI (default model: `gpt-4o-mini`), Firecrawl, Pydantic, Model Context Protocol (MCP).
 
+## Components
 
-**Python** · **LangGraph** · **GPT-4** · **Agentic AI** · **Tool Calling** · **Web Research**
+- **Advanced agent** (`CodingResearchAgentAI/advanced-agent`): searches and scrapes pages, extracts tool names, records structured attributes, filters model-generated evidence to excerpts actually present in the selected page, and generates cautious recommendations.
+- **Simple MCP agent** (`CodingResearchAgentAI/simple-agent`): interactive assistant using the Firecrawl MCP server through `npx`, with input and conversation-history bounds.
 
+## Quick start: advanced agent
 
-## Overview
+Prerequisites: Python 3.11+, [uv](https://docs.astral.sh/uv/), an OpenAI API key, and a Firecrawl API key.
 
-
-CodingResearchAgentAI automates technical research for developers by using an AI agent to investigate software tools and extract structured technical information.
-
-
-The system is designed to research and organize information such as:
-
-- Pricing
-
-- Technology stack
-
-- APIs
-
-- Technical capabilities
-
-- Tool comparisons
-
-
-## Problem
-
-
-Evaluating software technologies often requires manually searching multiple sources, comparing documentation, pricing, capabilities, and APIs.
-
-
-This project demonstrates how agentic AI can automate that research workflow.
-
-
-## Agentic Workflow
-
-
-```text
-
-                    User Request
-
-                         │
-
-                         ▼
-
-                  Research Planning
-
-                         │
-
-                         ▼
-
-                  Agent Execution
-
-                         │
-
-             ┌───────────┼───────────┐
-
-             ▼           ▼           ▼
-
-         Web Search   Extraction   Analysis
-
-             │           │           │
-
-             └───────────┼───────────┘
-
-                         ▼
-
-                  Structured Results
-
-                         │
-
-                         ▼
-
-                  Research Summary
-
+```bash
+cd CodingResearchAgentAI/advanced-agent
+uv sync --extra dev
 ```
 
+Create a `.env` file in this directory:
 
-## Why LangGraph?
-
-
-LangGraph is used to model the research workflow as a stateful graph rather than a single LLM request.
-
-
-This makes it possible to represent:
-
-- Multi-step execution
-
-- Agent state
-
-- Tool interactions
-
-- Sequential research tasks
-
-- Structured outputs
-
-- Workflow control
-
-
-## Research Pipeline
-
-
-```text
-
-Question
-
-   ↓
-
-Plan Research
-
-   ↓
-
-Collect Sources
-
-   ↓
-
-Extract Information
-
-   ↓
-
-Normalize Results
-
-   ↓
-
-Compare Technologies
-
-   ↓
-
-Generate Structured Analysis
-
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+FIRECRAWL_API_KEY=your_firecrawl_api_key
+# Optional:
+OPENAI_MODEL=gpt-4o-mini
 ```
 
+Run the CLI:
 
-## Information Extraction
-
-
-### Pricing
-
-- Pricing information
-
-- Available plans
-
-- Cost-related information
-
-
-### Technology
-
-- Frameworks
-
-- Languages
-
-- Infrastructure
-
-- Integrations
-
-
-### APIs
-
-- API availability
-
-- API capabilities
-
-- Integration information
-
-
-## Engineering Focus
-
-
-This project demonstrates:
-
-- Agentic AI architecture
-
-- LangGraph workflow orchestration
-
-- LLM-powered research
-
-- Tool integration
-
-- Structured information extraction
-
-- Multi-step reasoning workflows
-
-- Automated technical analysis
-
-
-## Technology Stack
-
-
-- Python
-
-- LangGraph
-
-- GPT-4
-
-- LLM APIs
-
-- Web research / information extraction
-
-
-## Project Structure
-
-
-```text
-
-CodingResearchAgentAI/
-
-├── CodingResearchAgentAI/
-
-└── README.md
-
+```bash
+uv run python main.py
 ```
 
+## Quick start: simple MCP agent
 
-## Future Improvements
+Prerequisites: Python 3.11+, Node.js/npm (for `npx`), OpenAI API key, and Firecrawl API key.
 
+```bash
+cd CodingResearchAgentAI/simple-agent
+uv sync
+```
 
-Potential improvements include:
+Create a `.env` file in `simple-agent/` with `OPENAI_API_KEY` and `FIRECRAWL_API_KEY`, then run:
 
-- Additional research tools
+```bash
+uv run python main.py
+```
 
-- Source reliability scoring
+Type `quit` or `exit` to stop either CLI.
 
-- Citation tracking
+## Reliability and security notes
 
-- Parallel research agents
+- Search failures produce empty results and warnings instead of inconsistent return types.
+- Research attributes should be treated as unverified unless there is claim-level evidence with an excerpt that exactly matches the selected source page.
+- Retrieved pages are untrusted input. Prompt boundaries help but do not eliminate prompt-injection risk.
+- A search result is not guaranteed to be the product's official website. Review source URLs before relying on findings.
+- External pricing and feature information can change. Independently verify consequential decisions.
+- The simple agent can invoke tools exposed by its MCP server. Use only trusted MCP servers and least-privilege API keys; this sample does not implement approval for arbitrary privileged tools.
 
-- Research-result evaluation
+## Development
 
-- Persistent agent state
+Advanced-agent tests and linting:
 
-- MCP-based tool integration
+```bash
+cd CodingResearchAgentAI/advanced-agent
+uv sync --extra dev
+uv run ruff check src tests main.py
+uv run pytest --cov=src --cov-report=term-missing
+```
 
-- Automated benchmarking
+GitHub Actions runs lint/tests for the advanced agent and a compile check for the simple agent. No live API calls are needed by the unit tests.
 
+## Project layout
 
-## Disclaimer
+```text
+.
+├── .github/workflows/ci.yml
+├── LICENSE
+├── README.md
+└── CodingResearchAgentAI
+    ├── advanced-agent
+    │   ├── main.py
+    │   ├── pyproject.toml
+    │   ├── src
+    │   └── tests
+    ├── simple-agent
+    │   ├── main.py
+    │   └── pyproject.toml
+    └── requirements.txt
+```
 
+## License
 
-This project is a technical demonstration of agentic AI workflows for software research.
-
-
-Information collected from external sources should be independently verified before making purchasing or technical decisions.
-
+MIT. See [LICENSE](LICENSE).
