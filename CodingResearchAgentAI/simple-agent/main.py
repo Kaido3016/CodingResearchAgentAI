@@ -5,7 +5,7 @@ import os
 import shutil
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langgraph.prebuilt import create_react_agent
@@ -31,9 +31,11 @@ def _required_env(name: str) -> str:
 
 
 def _bounded_history(messages: list, new_user_message: HumanMessage) -> list:
-    """Keep the system prompt plus a small, recent history window."""
+    """Keep the system prompt plus a small, recent conversation window."""
     history = [message for message in messages if getattr(message, "type", "") != "system"]
-    return [SystemMessage(content=SYSTEM_PROMPT), *history[-(MAX_HISTORY_MESSAGES - 1):], new_user_message]
+    # Trim oldest messages in pairs so a retained assistant tool call never lacks its context.
+    history = history[-(MAX_HISTORY_MESSAGES - 1):]
+    return [SystemMessage(content=SYSTEM_PROMPT), *history, new_user_message]
 
 
 async def main() -> None:
@@ -78,9 +80,9 @@ async def main() -> None:
                 if not user_input:
                     continue
                 user_message = HumanMessage(content=user_input[:MAX_INPUT_CHARS])
-                messages = _bounded_history(messages, user_message)
+                request_messages = _bounded_history(messages, user_message)
                 try:
-                    response = await agent.ainvoke({"messages": messages})
+                    response = await agent.ainvoke({"messages": request_messages})
                     response_messages = response.get("messages", [])
                     answer = next(
                         (message.content for message in reversed(response_messages)
@@ -88,10 +90,8 @@ async def main() -> None:
                         "No response was returned.",
                     )
                     print("\nAgent:", answer)
-                    # Persist only the latest user/assistant pair and let the next turn prune it.
-                    messages.append(HumanMessage(content=user_message.content))
-                    from langchain_core.messages import AIMessage
-                    messages.append(AIMessage(content=answer))
+                    # Persist one copy of this user turn and its answer; never persist tool internals.
+                    messages = [SystemMessage(content=SYSTEM_PROMPT), *request_messages[1:], AIMessage(content=answer)]
                 except Exception:
                     logger.exception("Agent invocation failed")
                     print("The agent request failed. Check configuration/logs and try again.")
