@@ -55,18 +55,26 @@ async def main() -> None:
     server_params = StdioServerParameters(
         command=npx,
         args=["--yes", "firecrawl-mcp"],
-        env={**os.environ, "FIRECRAWL_API_KEY": firecrawl_key},
+        env={
+            key: value for key, value in os.environ.items()
+            if key in {"PATH", "HOME", "USERPROFILE", "APPDATA", "SystemRoot", "TEMP", "TMP", "NPM_CONFIG_CACHE"}
+        } | {"FIRECRAWL_API_KEY": firecrawl_key},
     )
 
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
             tools = await load_mcp_tools(session)
-            if not tools:
-                raise RuntimeError("The MCP server exposed no tools; check the Firecrawl MCP setup.")
-            agent = create_react_agent(model, tools)
+            # This sample is intentionally limited to read-only research tools.
+            safe_tools = [
+                tool for tool in tools
+                if any(token in tool.name.casefold() for token in ("search", "scrape", "crawl", "extract", "map"))
+            ]
+            if not safe_tools:
+                raise RuntimeError("No allowlisted read-only MCP tools were exposed; inspect the server tool names.")
+            agent = create_react_agent(model, safe_tools)
             messages = [SystemMessage(content=SYSTEM_PROMPT)]
-            print("Available Tools:", ", ".join(tool.name for tool in tools))
+            print("Available read-only tools:", ", ".join(tool.name for tool in safe_tools))
             print("Type 'quit' or 'exit' to stop.")
             while True:
                 try:
