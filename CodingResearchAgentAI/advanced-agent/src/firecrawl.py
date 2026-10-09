@@ -1,7 +1,9 @@
 """Typed, failure-tolerant wrapper around the Firecrawl SDK."""
+import ipaddress
 import logging
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from firecrawl import FirecrawlApp, ScrapeOptions
@@ -25,6 +27,23 @@ def _as_mapping(value: Any) -> dict[str, Any]:
         except Exception:
             pass
     return {}
+
+
+def _safe_public_url(value: str) -> bool:
+    """Reject malformed URLs, credentials, local hostnames, and literal non-public IPs."""
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return False
+    if parsed.username or parsed.password:
+        return False
+    host = parsed.hostname.rstrip(".").casefold()
+    if host in {"localhost", "localhost.localdomain"} or host.endswith((".local", ".internal", ".localhost")):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return True
+    return address.is_global
 
 
 class FirecrawlService:
@@ -58,12 +77,9 @@ class FirecrawlService:
             return []
 
     def scrape_company_pages(self, url: str) -> Any | None:
-        """Scrape only HTTP(S) URLs; return None on a provider failure."""
-        from urllib.parse import urlparse
-
-        parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-            logger.warning("Refusing to scrape an invalid URL: %r", url)
+        """Scrape public HTTP(S) URLs only; return None on a provider failure."""
+        if not _safe_public_url(url):
+            logger.warning("Refusing to scrape an invalid or non-public URL: %r", url)
             return None
         try:
             return self.app.scrape_url(url, formats=["markdown"])
