@@ -1,3 +1,5 @@
+# Legacy convenience requirements for the advanced agent.
+# Prefer the package-specific pyproject.toml files and uv sync.
 firecrawl-py>=2.7.1
 langchain>=0.3.25
 langchain-openai>=0.3.19
